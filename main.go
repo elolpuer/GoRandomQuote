@@ -6,15 +6,21 @@ import (
 
 	"./config"
 	"./controllers"
+	"./db"
 )
 
 var cfg = config.Config()
 
 func main() {
-	fmt.Println(cfg.Host)
+	err := db.Connect()
+	if err != nil {
+		fmt.Print("Database error", err)
+	}
 	http.HandleFunc("/", controllers.SayHello)
-	err := http.ListenAndServe("localhost:5000", nil)
+	fmt.Println("Server started on port", cfg.Port)
+	err = http.ListenAndServe(fmt.Sprintf("%s:%s", cfg.Host, cfg.Port), nil)
 	if err != nil {
 		fmt.Print("ListeAndServe: ", err)
 	}
+
 }
