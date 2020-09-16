@@ -4,8 +4,11 @@ import (
 	"database/sql"
 	"fmt"
 
+	"../config"
 	_ "github.com/lib/pq"
 )
+
+var cfg = config.Config()
 
 var db sql.DB
 
