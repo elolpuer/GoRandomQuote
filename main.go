@@ -6,7 +6,6 @@ import (
 
 	"./config"
 	"./controllers"
-	_ "github.com/lib/pq"
 )
 
 var cfg = config.Config()
