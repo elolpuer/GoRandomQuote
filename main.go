@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"html/template"
 	"log"
+	"math/rand"
 	"net/http"
+	"time"
 
 	"./config"
 	_ "github.com/lib/pq"
@@ -38,10 +40,18 @@ func main() {
 
 	tml = template.Must(template.ParseGlob("templates/*.gohtml"))
 
-	http.HandleFunc("/", findAllQuote)
+	http.HandleFunc("/", redirectOnRandom)
+	http.HandleFunc("/random", randomQuotePage)
+	http.HandleFunc("/random/run", randomQuoteRun)
+	http.HandleFunc("/myquotes", findAllQuote)
 	http.HandleFunc("/add", addForm)
 	http.HandleFunc("/add/process", addQuote)
+	http.HandleFunc("/delete", deleteQuote)
 	http.ListenAndServe(fmt.Sprintf("%s:%s", cfg.Host, cfg.Port), nil)
+}
+
+func redirectOnRandom(w http.ResponseWriter, req *http.Request) {
+	http.Redirect(w, req, "/random", http.StatusSeeOther)
 }
 
 func findAllQuote(w http.ResponseWriter, req *http.Request) {
@@ -94,4 +104,62 @@ func addQuote(w http.ResponseWriter, req *http.Request) {
 	}
 
 	http.Redirect(w, req, "/", http.StatusSeeOther)
+}
+
+func deleteQuote(w http.ResponseWriter, req *http.Request) {
+	if req.Method != "POST" {
+		http.Error(w, http.StatusText(405), http.StatusMethodNotAllowed)
+	}
+
+	id := req.FormValue("id")
+
+	_, err := db.Exec("DELETE FROM quotes WHERE id=$1", id)
+	if err != nil {
+		http.Error(w, http.StatusText(500), http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, req, "/", http.StatusSeeOther)
+}
+
+func randomQuotePage(w http.ResponseWriter, req *http.Request) {
+	tml.ExecuteTemplate(w, "random.gohtml", nil)
+}
+
+func randomQuoteRun(w http.ResponseWriter, req *http.Request) {
+	if req.Method != "GET" {
+		http.Error(w, http.StatusText(405), http.StatusMethodNotAllowed)
+	}
+	rows, err := db.Query("SELECT * FROM quotes")
+	if err != nil {
+		http.Error(w, http.StatusText(405), http.StatusServiceUnavailable)
+	}
+	defer rows.Close()
+
+	quotes := make([]*Quote, 0)
+	for rows.Next() {
+		quote := new(Quote)
+		err := rows.Scan(&quote.ID, &quote.Author, &quote.Body)
+		if err != nil {
+			log.Fatal(err)
+		}
+		quotes = append(quotes, quote)
+	}
+	if err = rows.Err(); err != nil {
+		log.Fatal(err)
+	}
+	lastID := quotes[0].ID + len(quotes)
+	myrand := random(quotes[0].ID, lastID)
+	randomQuote := quotes[myrand]
+
+	tml.ExecuteTemplate(w, "random_run.gohtml", randomQuote)
+}
+
+func random(min, max int) int {
+	rand.Seed(time.Now().UnixNano())
+	if min > max {
+		return min
+	}
+	return rand.Intn(max-min) + min
+
 }

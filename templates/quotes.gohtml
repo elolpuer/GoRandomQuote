@@ -28,12 +28,16 @@
   </div>
 </nav>
     {{range .}}
-    <p>
-        {{.Author}}
-    </p>
-    <p>
-        {{.Body}}
-    </p>
+      <form action="/delete?id={{.ID}}" method="POST" name="id">
+        <p>
+          {{.Author}}
+        </p>
+        <p>
+          {{.Body}}
+        </p>
+        <button type="submit" class="btn btn-danger">Delete</button>
+
+      </form>  
     {{end}}
 </body>
 </html>
