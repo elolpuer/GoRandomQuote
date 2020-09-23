@@ -148,8 +148,7 @@ func randomQuoteRun(w http.ResponseWriter, req *http.Request) {
 	if err = rows.Err(); err != nil {
 		log.Fatal(err)
 	}
-	lastID := quotes[0].ID + len(quotes)
-	myrand := random(quotes[0].ID, lastID)
+	myrand := random(0, len(quotes))
 	randomQuote := quotes[myrand]
 
 	tml.ExecuteTemplate(w, "random_run.gohtml", randomQuote)
